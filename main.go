@@ -34,6 +34,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"strings"
+	"os/signal"
+	"syscall"
 )
 
 var (
@@ -45,6 +47,7 @@ var (
 	flush            = flag.Bool("f", false, "flush IPVS pools on start")
 	listen           = flag.String("l", ":4672", "endpoint to listen for HTTP requests")
 	consul           = flag.String("c", "", "URL for Consul HTTP API")
+	config           = flag.String("config", "./services.yaml", "YAML file describing services and backends")
 	vipInterface     = flag.String("vipi", "", "interface to add VIPs")
 	storeURLs        = flag.String("store", "", "comma delimited list of store urls for sync data. All urls must have" +
 		" identical schemes and paths.")
@@ -105,6 +108,17 @@ func main() {
 		}
 		defer store.Close()
 	}
+
+	LoadConfiguration(ctx)
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGUSR1)
+	go func() {
+		for {
+			<-c
+			LoadConfiguration(ctx)
+		}
+	}()
 
 	core.RegisterPrometheusExporter(ctx)
 	r := mux.NewRouter()

@@ -16,7 +16,7 @@ Check out these [slides for my DockerCon EU 2015 talk](http://www.slideshare.net
 
 There's not much of a configuration required - only a handlful of options can be specified on the command line:
 
-    gorb [-c <consul-address>] [-f flush-pools] [-i interface] [-l listen-address] | -h
+    gorb [-c <consul-address>] [-config <services.yaml>] [-f flush-pools] [-i interface] [-l listen-address] | -h
 
 By default, GORB will listen on `:4672`, bind services on `eth0` and keep your IPVS pool intact on launch.
 
@@ -63,6 +63,35 @@ This scheduler has two flags: sh-fallback, which enables fallback to a different
 - `PATCH /service/<service>/<backend>` update backend configuration and its health check metrics.
 
 For more information and various configuration options description, consult [`man 8 ipvsadm`](http://linux.die.net/man/8/ipvsadm).
+
+## Loading services from config file
+
+Alternatively, gorb can be configured using YAML file that describes services and backends. The YAML file format matches REST interface, but each service needs an unique
+identifier so that it can be referenced from backends:
+```yaml
+services:
+  svc-1:
+    host: "10.0.0.1"
+    port: 12345
+    protocol: "tcp|udp"
+    method: ""rr|wrr|lc|wlc|lblc|lblcr|sh|dh|sed|nq|..."
+    persistent: true
+    flags: "sh-fallback|sh-port",
+
+backends:
+  backend-1:
+    vsid: "svc-1"
+    host: "10.1.0.1"
+    method: "nat|tunnel"
+    pulse:
+      type: "none|tcp|http"
+      args:
+        method: "GET"
+        path: "/health"
+        expect: 200
+      interval: "5s"
+    weight: 100
+```
 
 ## Development
 
