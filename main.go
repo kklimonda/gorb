@@ -34,6 +34,8 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"strings"
+	"os/signal"
+	"syscall"
 )
 
 var (
@@ -105,6 +107,17 @@ func main() {
 		}
 		defer store.Close()
 	}
+
+	LoadConfiguration(ctx)
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, syscall.SIGUSR1)
+	go func() {
+		for {
+			<-c
+			LoadConfiguration(ctx)
+		}
+	}()
 
 	core.RegisterPrometheusExporter(ctx)
 	r := mux.NewRouter()
